@@ -33,7 +33,7 @@ public class AnalyseOLA {
         this.size = size;
         this.alpha = alpha;
         this.beta = beta;
-        this.gamma = gamma; // l'indice gamme est ce qui permet d'annuler le bruit ou d'amplifier le bruit donc pour annuler on le met a 0
+        this.gamma = gamma;
         this.debruitage();
     }
 
@@ -88,11 +88,11 @@ public class AnalyseOLA {
                 moyenne_bruit[i] = moyenne_bruit[i] / nb_echantillonsBruit;
             }
         } // fin question 8
-        
+
         // question 9
         spectre_amplitude = this.soustractionspetrale(spectre_amplitude, moyenne_bruit, alpha, beta, gamma);
         double[] spectre_phase = this.spectrephase(x, fftOrder);
-        
+
         x = this.spectrereconstruction(spectre_amplitude, spectre_phase, fftOrder);
 
         fft.transform(x, true);
@@ -137,8 +137,10 @@ public class AnalyseOLA {
     public double[] soustractionspetrale(double[] spectre_amplitude, double[] spectre_bruit, double alpha, double beta, double gamma) {
         double[] res = new double[spectre_amplitude.length];
         for (int i = 0; i < res.length; i++) {
-            double soustraction = Math.pow(Math.pow(spectre_amplitude[i], alpha) - beta * Math.pow(spectre_bruit[i], alpha), 1 / alpha);
-            if (soustraction > 0) {
+            double X = Math.pow(spectre_amplitude[i], alpha);
+            double B = beta * Math.pow(spectre_bruit[i], alpha);
+            double soustraction = Math.pow(X - B, 1 / alpha);
+            if (X-B > 0) {
                 res[i] = soustraction;
             } else {
                 res[i] = gamma * spectre_bruit[i];
@@ -168,7 +170,7 @@ public class AnalyseOLA {
             double[] f = fft(this.fenetrageHamming(i, size), fftOrder, indiceFenetre);
             for (int k = 0; k < f.length; k++) {
                 if (i + k < ss.getSignalLength() && 2 * k < 2 * fftOrder) {
-                    signal_modif[k + i] = (short) ((f[k * 2] + signal_modif[k + i]));
+                    signal_modif[k + i] = (short) ((f[k * 2] + signal_modif[k + i]) / 2.16);
                 }
             }
             indiceFenetre++;
