@@ -16,10 +16,10 @@ public class AnalyseOLA {
 
     private SoundSignal ss;
     private double[] moyenne_bruit;
-    private int fftOrder, start, size;
+    private int fftOrder, start, size, alpha, beta, gamma;
     private String out;
 
-    public AnalyseOLA(String path, String out, int fftOrder, int start, int size) {
+    public AnalyseOLA(String path, String out, int fftOrder, int start, int size, int alpha, int beta, int gamma) throws IOException {
         ss = new SoundSignal();
         try {
             ss.setSignal(path);
@@ -31,6 +31,10 @@ public class AnalyseOLA {
         this.out = out;
         this.start = start;
         this.size = size;
+        this.alpha = alpha;
+        this.beta = beta;
+        this.gamma = gamma; // l'indice gamme est ce qui permet d'annuler le bruit ou d'amplifier le bruit donc pour annuler on le met a 0
+        this.debruitage();
     }
 
     public double[] fenetrageHamming(int start, int size) {
@@ -86,9 +90,6 @@ public class AnalyseOLA {
         } // fin question 8
         
         // question 9
-        int alpha = 2;
-        int beta = 10;
-        int gamma = 0; // l'indice gamme est ce qui permet d'annuler le bruit ou d'amplifier le bruit donc pour annuler on le met a 0
         spectre_amplitude = this.soustractionspetrale(spectre_amplitude, moyenne_bruit, alpha, beta, gamma);
         double[] spectre_phase = this.spectrephase(x, fftOrder);
         
@@ -160,7 +161,7 @@ public class AnalyseOLA {
         ss.exportSignal("test_seg_hamming.wav", true);
     }
 
-    public void debruitage() throws IOException {
+    private void debruitage() throws IOException {
         short[] signal_modif = new short[ss.getSignalLength()];
         int indiceFenetre = 0;
         for (int i = 0; i < ss.getSignalLength(); i = i + start) {

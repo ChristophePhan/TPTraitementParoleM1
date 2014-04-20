@@ -13,11 +13,10 @@ public class TP2Main {
         int fftOrder = 1024;
         int start = 176;
         int size = 705;
-        AnalyseOLA aola = new AnalyseOLA("test_seg_bruit_0dB.wav", "test_seg_bruit_0dB_debruite.wav", fftOrder, start, size);
+        AnalyseOLA aola = new AnalyseOLA("test_seg_bruit_0dB.wav", "test_seg_bruit_0dB_debruite.wav", fftOrder, start, size, 2,30,0);
         // 8 ms -> 8 * (22050/1000) = 176 echantillons
         // 32 ms -> 32 * (22050/1000) = 705 echantillons
 
         //aola.reconstructionHamming();
-        aola.debruitage();
     }
 }
