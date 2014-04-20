@@ -1,6 +1,5 @@
 package TP2;
 
-import TP1.Analyse;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,7 +23,7 @@ public class AnalyseOLA {
         try {
             ss.setSignal(path);
         } catch (UnsupportedAudioFileException | IOException ex) {
-            Logger.getLogger(Analyse.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(AnalyseOLA.class.getName()).log(Level.SEVERE, null, ex);
         }
         moyenne_bruit = new double[fftOrder];
         this.fftOrder = fftOrder;
