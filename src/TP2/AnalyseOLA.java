@@ -15,14 +15,22 @@ import fft.FFT; //si .jar
 public class AnalyseOLA {
 
     private SoundSignal ss;
+    private double[] moyenne_bruit;
+    private int fftOrder, start, size;
+    private String out;
 
-    public AnalyseOLA(String path) {
+    public AnalyseOLA(String path, String out, int fftOrder, int start, int size) {
         ss = new SoundSignal();
         try {
             ss.setSignal(path);
         } catch (UnsupportedAudioFileException | IOException ex) {
             Logger.getLogger(Analyse.class.getName()).log(Level.SEVERE, null, ex);
         }
+        moyenne_bruit = new double[fftOrder];
+        this.fftOrder = fftOrder;
+        this.out = out;
+        this.start = start;
+        this.size = size;
     }
 
     public double[] fenetrageHamming(int start, int size) {
@@ -46,7 +54,7 @@ public class AnalyseOLA {
         return hamming;
     }
 
-    public double[] fft(double[] sign, int fftOrder) {
+    public double[] fft(double[] sign, int fftOrder, int indiceFenetre) {
         //int fftOrder = 1024;
         FFT fft = new FFT(fftOrder);//fftOrder : ordre de fft
         // une puissance de 2
@@ -63,6 +71,28 @@ public class AnalyseOLA {
         //la partie réelle : x[i*2]
         //la partie imaginaire : x[i*2+1]
         //calculs sur le spectre
+
+        //question 8 estimation du spectre d’amplitude du bruit
+        int nb_echantillonsBruit = 5;
+        double[] spectre_amplitude = this.spectreamplitude(x, fftOrder);
+        if (indiceFenetre < nb_echantillonsBruit) {
+            for (int i = 0; i < moyenne_bruit.length; i++) {
+                moyenne_bruit[i] = moyenne_bruit[i] + spectre_amplitude[i];
+            }
+        } else if (indiceFenetre == nb_echantillonsBruit) {
+            for (int i = 0; i < moyenne_bruit.length; i++) {
+                moyenne_bruit[i] = moyenne_bruit[i] / nb_echantillonsBruit;
+            }
+        } // fin question 8
+        
+        // question 9
+        int alpha = 2;
+        int beta = 10;
+        int gamma = 0; // l'indice gamme est ce qui permet d'annuler le bruit ou d'amplifier le bruit donc pour annuler on le met a 0
+        spectre_amplitude = this.soustractionspetrale(spectre_amplitude, moyenne_bruit, alpha, beta, gamma);
+        double[] spectre_phase = this.spectrephase(x, fftOrder);
+        
+        x = this.spectrereconstruction(spectre_amplitude, spectre_phase, fftOrder);
 
         fft.transform(x, true);
         //le signal fenêtré final se trouve en x[i*2]
@@ -103,7 +133,20 @@ public class AnalyseOLA {
         return res;
     }
 
-    public void reconstructionHamming(int start, int size) throws IOException {
+    public double[] soustractionspetrale(double[] spectre_amplitude, double[] spectre_bruit, double alpha, double beta, double gamma) {
+        double[] res = new double[spectre_amplitude.length];
+        for (int i = 0; i < res.length; i++) {
+            double soustraction = Math.pow(Math.pow(spectre_amplitude[i], alpha) - beta * Math.pow(spectre_bruit[i], alpha), 1 / alpha);
+            if (soustraction > 0) {
+                res[i] = soustraction;
+            } else {
+                res[i] = gamma * spectre_bruit[i];
+            }
+        }
+        return res;
+    }
+
+    public void reconstructionHamming() throws IOException {
         short[] signal_modif = new short[ss.getSignalLength()];
         for (int i = 0; i < ss.getSignalLength(); i = i + start) {
             double[] f = this.fenetrageHamming(i, size);
@@ -117,17 +160,19 @@ public class AnalyseOLA {
         ss.exportSignal("test_seg_hamming.wav", true);
     }
 
-    public void reconstructionFourier(int start, int size, int fftOrder) throws IOException {
+    public void debruitage() throws IOException {
         short[] signal_modif = new short[ss.getSignalLength()];
+        int indiceFenetre = 0;
         for (int i = 0; i < ss.getSignalLength(); i = i + start) {
-            double[] f = fft(this.fenetrageHamming(i, size), fftOrder);
+            double[] f = fft(this.fenetrageHamming(i, size), fftOrder, indiceFenetre);
             for (int k = 0; k < f.length; k++) {
                 if (i + k < ss.getSignalLength() && 2 * k < 2 * fftOrder) {
                     signal_modif[k + i] = (short) ((f[k * 2] + signal_modif[k + i]));
                 }
             }
+            indiceFenetre++;
         }
         ss.setSignal(signal_modif, ss.getSamplingFrequency());
-        ss.exportSignal("test_seg_fourier.wav", true);
+        ss.exportSignal(out, true);
     }
 }
